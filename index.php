@@ -226,11 +226,9 @@ if (!isset($_SESSION['username'])) {
             <input type="text" id="message" placeholder="Scrivi un messaggio..." />
 
             <div class="file-input-wrapper">
-                <input type="file" id="image" accept="image/*" />
-                <label for="image" class="custom-file-label">
-                    Scegli immagine
-                </label>
-                <span class="file-name">Nessuna immagine selezionata</span>
+                <input type="file" id="file" />
+                <label for="file" class="custom-file-label">Allega file</label>
+                <span class="file-name">Nessun file selezionato</span>
             </div>
 
             <button type="submit">Invia</button>
@@ -243,11 +241,17 @@ if (!isset($_SESSION['username'])) {
         const chatBox = document.getElementById('chat-box');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message');
+        const fileInput = document.getElementById('file');
+        const fileNameSpan = document.querySelector('.file-name');
         const username = '<?php echo addslashes($_SESSION['username']); ?>';
 
+        // Funzione per caricare i messaggi
         function loadMessages() {
             fetch('get_messages.php')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) throw new Error('Errore nel caricamento messaggi');
+                    return response.json();
+                })
                 .then(data => {
                     chatBox.innerHTML = '';
                     data.forEach(msg => {
@@ -258,45 +262,70 @@ if (!isset($_SESSION['username'])) {
                         chatBox.appendChild(div);
                     });
                     chatBox.scrollTop = chatBox.scrollHeight;
+                })
+                .catch(error => {
+                    console.error('Errore:', error);
                 });
         }
 
+        // Aggiorna messaggi ogni 2 secondi
         setInterval(loadMessages, 2000);
         loadMessages();
 
+        // Gestione invio messaggio
         chatForm.addEventListener('submit', e => {
             e.preventDefault();
 
             const msg = messageInput.value.trim();
-            const imageFile = document.getElementById('image').files[0];
+            const file = fileInput.files[0];
+
+            // Se non c'è messaggio e non c'è file, non inviare
+            if (!msg && !file) return;
 
             const formData = new FormData();
             formData.append('message', msg);
-            if (imageFile) {
-                formData.append('image', imageFile);
+            if (file) {
+                formData.append('file', file);
             }
 
             fetch('send_message.php', {
                 method: 'POST',
                 body: formData
-            }).then(() => {
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Errore nell\'invio');
+                return response.text();
+            })
+            .then(() => {
                 messageInput.value = '';
-                document.getElementById('image').value = '';
+                fileInput.value = '';
+                fileNameSpan.textContent = 'Nessun file selezionato';
                 loadMessages();
+            })
+            .catch(error => {
+                console.error('Errore:', error);
+                alert('Errore nell\'invio del messaggio');
             });
         });
 
-        const imageInput = document.getElementById('image');
-        const fileNameSpan = document.querySelector('.file-name');
-
-        imageInput.addEventListener('change', () => {
-            if (imageInput.files && imageInput.files.length > 0) {
-                fileNameSpan.textContent = imageInput.files[0].name;
+        // Aggiorna nome file selezionato
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                fileNameSpan.textContent = `${file.name} (${formatFileSize(file.size)})`;
             } else {
-                fileNameSpan.textContent = 'Nessuna immagine selezionata';
+                fileNameSpan.textContent = 'Nessun file selezionato';
             }
         });
 
+        // Funzione per formattare dimensione file
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
     </script>
 </body>
 </html>
