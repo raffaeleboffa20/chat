@@ -1,1 +1,1 @@
-nella stessa cartella dei fai creane una nuova chiamata "uploads"
+nella stessa cartella dei file creane una nuova chiamata "uploads"
