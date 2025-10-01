@@ -247,6 +247,9 @@ if (!isset($_SESSION['username'])) {
 
         // Funzione per caricare i messaggi
         function loadMessages() {
+            // Salva la posizione di scroll prima di aggiornare
+            const wasAtBottom = chatBox.scrollHeight - chatBox.clientHeight <= chatBox.scrollTop + 1;
+
             fetch('get_messages.php')
                 .then(response => {
                     if (!response.ok) throw new Error('Errore nel caricamento messaggi');
@@ -261,7 +264,11 @@ if (!isset($_SESSION['username'])) {
                         div.innerHTML = `<span class="username">${msg.username}</span>${msg.message}<span class="time">${msg.created_at}</span>`;
                         chatBox.appendChild(div);
                     });
-                    chatBox.scrollTop = chatBox.scrollHeight;
+                    
+                    // Scrolla in fondo SOLO se l'utente era già in fondo
+                    if (wasAtBottom) {
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
                 })
                 .catch(error => {
                     console.error('Errore:', error);
